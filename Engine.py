@@ -5,26 +5,32 @@ import os
 import json
 import importlib.util
 
-# --- Konfigurace ---
-WIDTH, HEIGHT = 800, 600
-FOV = math.pi / 3
+# === BASIC SETTINGS ===
+WIDTH, HEIGHT = 800, 600            # Screen resolution
+TILE = 50                           # Size of one tile in pixels
+
+# === RAYCASTING PARAMETERS ===
+FOV = math.pi / 3                   # Field of view (60 degrees)
 HALF_FOV = FOV / 2
-NUM_RAYS = 120
-MAX_DEPTH = 20
+NUM_RAYS = 160                      # Number of rays cast
 DELTA_ANGLE = FOV / NUM_RAYS
 DIST = NUM_RAYS / (2 * math.tan(HALF_FOV))
-PROJ_COEFF = 3 * DIST * 40
-SCALE = WIDTH // NUM_RAYS
-TILE = 50
-GRAVITY = 1
-JUMP_POWER = 15
-GROUND_LEVEL = 0
-MAP_FILE = "map.json"
+PROJ_COEFF = 3 * DIST * TILE        # Wall projection size coefficient
+SCALE = WIDTH // NUM_RAYS           # Width of a single vertical ray column
+
+# === PLAYER PHYSICS ===
+GRAVITY = 1.2                       # Gravity strength
+JUMP_POWER = 18                     # Jump height
+GROUND_LEVEL = 0                    # Y level of the ground
+
+# === MAP SETTINGS ===
+MAP_FILE = "map.json"               # JSON file to store map data
+MAX_DEPTH = 20                      # Max ray depth (in tiles)
 
 TEXTURE_WALL = pygame.image.load("wall.png") if os.path.exists("wall.png") else None
 TEXTURE_FLOOR = pygame.image.load("floor.png") if os.path.exists("floor.png") else None
 
-# --- Inicializace ---
+# --- Initialization ---
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("VoidRay Engine")
@@ -37,7 +43,7 @@ player_z = GROUND_LEVEL
 vertical_speed = 0
 is_jumping = False
 
-# Výchozí mapa: [(typ, výška)]
+# Default map: [(type, height)]
 MAP = [
     [(1,0)] * 20,
     [(1,0), (0,0), (0,0), (0,0), (1,0), (0,1), (0,0), (1,0), (0,0), (0,0), (0,1), (1,0), (0,0), (0,0), (0,1), (1,0), (0,0), (0,0), (0,0), (1,0)],
@@ -70,7 +76,7 @@ def draw_menu():
     screen.fill((20, 20, 20))
     title = font.render("VoidRay Engine", True, (255, 255, 255))
     version = font.render("Alpha 0.0.5V | made by Kitsune and Zuha", True, (180, 180, 180))
-    info = font.render("[ENTER] start projekt | [ESC] Exit", True, (150, 150, 150))
+    info = font.render("[ENTER] Start | [ESC] Exit", True, (150, 150, 150))
 
     screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 3))
     screen.blit(version, (WIDTH // 2 - version.get_width() // 2, HEIGHT // 3 + 40))
@@ -92,31 +98,24 @@ def cast_rays():
         cos_a = math.cos(ray_angle)
 
         for depth in range(1, MAX_DEPTH * 10):
-            # Výpočet bodu zásahu
             target_x = player_x + cos_a * depth
             target_y = player_y + sin_a * depth
-
             i = int(target_x / TILE)
             j = int(target_y / TILE)
 
             if 0 <= j < len(MAP) and 0 <= i < len(MAP[0]):
                 tile_type, tile_height = MAP[j][i]
-
                 if tile_type == 1:
-                    # Korekce fish-eye efektu
                     corrected_depth = depth * math.cos(player_angle - ray_angle)
                     wall_height = PROJ_COEFF / (corrected_depth + 0.0001)
                     wall_height = min(HEIGHT, wall_height)
 
-                    # Úprava výšky podle pater (výškové úrovně)
-                    y_offset = tile_height * 20  # Každé patro o 20 px níž
+                    y_offset = tile_height * 20
                     screen_y = HEIGHT // 2 - wall_height // 2 - y_offset
 
-                    # Stínování podle vzdálenosti
                     shade = max(30, 255 - int(corrected_depth * 2))
                     color = (shade, shade, shade)
 
-                    # Výpočet pozice a vykreslení
                     rect = pygame.Rect(ray * SCALE, screen_y, SCALE, wall_height)
 
                     if TEXTURE_WALL:
@@ -124,9 +123,9 @@ def cast_rays():
                         screen.blit(texture, rect)
                     else:
                         pygame.draw.rect(screen, color, rect)
-                    break  # Ray narazil, přestat dál hledat
+                    break
             else:
-                break  # Mimo mapu, přerušit ray
+                break
 
 def draw_fps():
     fps = int(clock.get_fps())
@@ -143,7 +142,7 @@ def load_mods():
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
 
-# --- Herní smyčka ---
+# --- Game loop ---
 menu = True
 load_mods()
 
@@ -185,13 +184,13 @@ while True:
         vertical_speed = -JUMP_POWER
         is_jumping = True
         
-    # Kolize
+    # Collision check
     if not check_collision(player_x + dx, player_y):
         player_x += dx
     if not check_collision(player_x, player_y + dy):
         player_y += dy
 
-    # Gravitace
+    # Gravity & jump
     player_z += vertical_speed
     vertical_speed += GRAVITY
     if player_z >= GROUND_LEVEL:
