@@ -74,13 +74,46 @@ MAP_HEIGHT = len(MAP) * TILE
 
 def draw_menu():
     screen.fill((20, 20, 20))
-    title = font.render("VoidRay Engine", True, (255, 255, 255))
-    version = font.render("Alpha 0.0.7V | made by Kitsune and Zuha", True, (180, 180, 180))
-    info = font.render("[ENTER] Start | [ESC] Exit", True, (150, 150, 150))
 
-    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 3))
-    screen.blit(version, (WIDTH // 2 - version.get_width() // 2, HEIGHT // 3 + 40))
-    screen.blit(info, (WIDTH // 2 - info.get_width() // 2, HEIGHT // 2))
+    # Title
+    title = font.render("VoidRay Engine", True, (255, 255, 255))
+    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 5))
+
+    # Version and credits
+    version = font.render("Alpha 0.0.7V | made by Kitsune and Zuha", True, (180, 180, 180))
+    screen.blit(version, (WIDTH // 2 - version.get_width() // 2, HEIGHT // 5 + 40))
+
+    # Start / Exit prompt
+    info = font.render("[ENTER] Start project  |  [ESC] Exit", True, (150, 150, 150))
+    screen.blit(info, (WIDTH // 2 - info.get_width() // 2, HEIGHT // 2 - 40))
+
+    # Controls
+    controls = [
+        "[WASD] Move",
+        "[Space] Jump",
+        "[Shift] Sprint",
+        "[F3] Debug overlay"
+    ]
+    for i, ctrl in enumerate(controls):
+        ctrl_text = font.render(ctrl, True, (100, 100, 100))
+        screen.blit(ctrl_text, (WIDTH // 2 - ctrl_text.get_width() // 2, HEIGHT // 2 + i * 20))
+
+    # Loaded mods display (if available)
+    if 'loaded_mods' in globals() and loaded_mods:
+        mods_title = font.render("Loaded Mods:", True, (200, 200, 100))
+        screen.blit(mods_title, (40, HEIGHT - 140))
+        for i, mod in enumerate(loaded_mods[:3]):
+            mod_text = font.render(f"- {mod}", True, (150, 150, 150))
+            screen.blit(mod_text, (60, HEIGHT - 120 + i * 20))
+
+    # Current map info (if available)
+    if 'current_map' in globals():
+        map_text = font.render(f"Current Map: {current_map}", True, (150, 150, 150))
+        screen.blit(map_text, (WIDTH - map_text.get_width() - 40, HEIGHT - 100))
+
+    # System info (screen and ray settings)
+    sysinfo = font.render(f"{WIDTH}x{HEIGHT} | {NUM_RAYS} rays", True, (80, 80, 80))
+    screen.blit(sysinfo, (WIDTH - sysinfo.get_width() - 40, HEIGHT - 40))
 
     pygame.display.flip()
 
