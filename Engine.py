@@ -54,11 +54,11 @@ is_jumping = False
 # Default map
 MAP = [
     [(1,0)] * 20,
-    [(1,0), (0,0), (0,0), (0,0), (1,0), (0,1), (0,0), (1,0), (0,0), (0,0), (0,1), (1,0), (0,0), (0,0), (0,1), (1,0), (0,0), (0,0), (0,0), (1,0)],
+    [(1,0), (0,0), (0,0), (0,0), (1,0), (2,0), (0,0), (1,0), (0,0), (2,0), (0,0), (1,0), (0,0), (0,0), (2,0), (1,0), (0,0), (0,0), (0,0), (1,0)],
     [(1,0), (0,0), (1,0), (0,0), (1,0), (1,0), (0,0), (1,0), (1,0), (0,0), (1,0), (1,0), (0,0), (1,0), (1,0), (1,0), (0,0), (1,0), (0,0), (1,0)],
-    [(1,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (1,0), (0,0), (1,0), (0,0), (1,0)],
+    [(1,0), (0,0), (1,0), (0,0), (0,0), (0,0), (2,0), (0,0), (0,0), (2,1), (0,0), (0,0), (2,0), (0,0), (0,0), (1,0), (0,0), (1,0), (0,0), (1,0)],
     [(1,0), (0,0), (1,0), (1,0), (1,0), (0,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (0,0), (1,0), (0,0), (1,0), (0,0), (1,0), (0,0), (1,0)],
-    [(1,0), (0,0), (0,0), (0,0), (1,0), (0,1), (0,0), (0,1), (0,0), (0,1), (0,0), (0,1), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (1,0)],
+    [(1,0), (0,0), (0,0), (0,0), (1,0), (2,1), (0,0), (2,0), (0,0), (2,1), (0,0), (2,0), (0,0), (1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (1,0)],
     [(1,0), (0,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (1,0), (0,0), (1,0), (0,0), (1,0)],
     [(1,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0), (1,0)],
     [(1,0)] * 20,
@@ -117,7 +117,7 @@ def draw_menu():
     screen.fill((20, 20, 20))
 
     title = font.render("VoidRay Engine", True, (255, 255, 255))
-    version = font.render("Alpha 0.1.1V | made by Kitsune and Zuha", True, (180, 180, 180))
+    version = font.render("Alpha 0.1.3V | made by Kitsune and Zuha", True, (180, 180, 180))
     info = font.render("[ENTER] Load map  |  [ESC] Exit  |  [↑/↓] Select Map", True, (150, 150, 150))
 
     screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 5))
@@ -156,11 +156,17 @@ def draw_menu():
     pygame.display.flip()
 
 def check_collision(x, y):
-    i, j = int(x / TILE), int(y / TILE)
-    if 0 <= j < len(MAP) and 0 <= i < len(MAP[0]):
-        return MAP[j][i][0] == 1
-    return True
+    """Check if the position (x, y) collides with a solid tile."""
+    tile_x, tile_y = int(x // TILE), int(y // TILE)
 
+    if 0 <= tile_y < len(MAP) and 0 <= tile_x < len(MAP[0]):
+        tile_type, _ = MAP[tile_y][tile_x]
+        solid_tiles = {1, 3}  # Typy, které se počítají jako pevné (např. 1=zeď, 3=pevná rampa)
+        return tile_type in solid_tiles
+
+    # Mimo mapu = kolize
+    return True
+    
 def cast_rays():
     start_angle = player_angle - HALF_FOV
     for ray in range(NUM_RAYS):
@@ -175,26 +181,59 @@ def cast_rays():
 
             if 0 <= j < len(MAP) and 0 <= i < len(MAP[0]):
                 tile_type, tile_height = MAP[j][i]
-                if tile_type == 1:
+
+                if tile_type == 1:  # Wall
                     corrected_depth = depth * math.cos(player_angle - ray_angle)
                     wall_height = PROJ_COEFF / (corrected_depth + 0.0001)
                     wall_height = min(HEIGHT, wall_height)
 
+                    # Depth-based shading: darker the further away the wall is
+                    base_shade = max(30, 255 - int(corrected_depth * 2))  # Basic depth-based shading
+                    
+                    # "Sunlight" effect: light comes from a direction (e.g. player's view direction)
+                    directional_light = math.cos(ray_angle - player_angle) * 0.2  # Adjust this for sun effect
+                    final_shade = base_shade + int(base_shade * directional_light)
+
+                    # Ensure shade is within the 0-255 range
+                    final_shade = max(0, min(255, final_shade))
+
+                    # Color tone based on the calculated shade
+                    color = (final_shade, final_shade, final_shade)
+
+                    # Calculate y position on the screen
                     y_offset = tile_height * 20
                     screen_y = HEIGHT // 2 - wall_height // 2 - y_offset
 
-                    shade = max(30, 255 - int(corrected_depth * 2))
-                    color = (shade, shade, shade)
+                    rect = pygame.Rect(ray * SCALE, screen_y, SCALE, wall_height)
+
+                    # Draw the wall with the calculated shade
+                    pygame.draw.rect(screen, color, rect)
+                    break
+
+                elif tile_type == 2:  # Window (hole in wall)
+                    corrected_depth = depth * math.cos(player_angle - ray_angle)
+                    wall_height = PROJ_COEFF / (corrected_depth + 0.0001)
+                    wall_height = min(HEIGHT, wall_height)
+
+                    # Render window as an empty space (lighter shade)
+                    base_shade = 150  # Lighter shade for windows
+                    directional_light = math.cos(ray_angle - player_angle) * 0.1  # Light direction effect
+                    final_shade = base_shade + int(base_shade * directional_light)
+
+                    final_shade = max(0, min(255, final_shade))
+
+                    color = (final_shade, final_shade, final_shade)
+
+                    y_offset = tile_height * 20
+                    screen_y = HEIGHT // 2 - wall_height // 2 - y_offset
 
                     rect = pygame.Rect(ray * SCALE, screen_y, SCALE, wall_height)
-                    if TEXTURE_WALL:
-                        texture = pygame.transform.scale(TEXTURE_WALL, (SCALE, int(wall_height)))
-                        screen.blit(texture, rect)
-                    else:
-                        pygame.draw.rect(screen, color, rect)
+
+                    pygame.draw.rect(screen, color, rect)
                     break
+
             else:
-                break
+                break  # Out of bounds (non-existing tile)
 
 def draw_fps():
     fps = int(clock.get_fps())
@@ -212,7 +251,6 @@ menu = True
 load_mods()
 load_map_list()  # <- přidej tuto řádku jako první
 
-# ochrana proti prázdnému seznamu map
 if not map_list:
     print("❌ No maps found! Creating default map...")
     save_map()
@@ -222,6 +260,14 @@ if map_index >= len(map_list):
     map_index = 0
 
 load_map(map_list[map_index])
+
+
+look_offset = 0  
+MOUSE_SENSITIVITY = 0.002
+VERTICAL_SENSITIVITY = 0.05
+pygame.mouse.set_visible(False)
+pygame.event.set_grab(True) 
+
 
 while True:
     if menu:
@@ -243,29 +289,40 @@ while True:
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+            pygame.quit(); sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_F5:
                 save_map()
             elif event.key == pygame.K_F9 and current_map not in ["None", "error"]:
                 load_map(current_map)
 
+    
+    mx, my = pygame.mouse.get_rel()
+    player_angle += mx * MOUSE_SENSITIVITY
+    look_offset += my * VERTICAL_SENSITIVITY
+    look_offset = max(-100, min(100, look_offset))  
+
     keys = pygame.key.get_pressed()
     dx, dy = 0, 0
-    speed = 1
+    speed = 1.0
     if keys[pygame.K_LSHIFT]:
-        speed = 2
+        speed = 2.2
+
+    
+    sin_a = math.sin(player_angle)
+    cos_a = math.cos(player_angle)
     if keys[pygame.K_w]:
-        dx += math.cos(player_angle) * speed
-        dy += math.sin(player_angle) * speed
+        dx += cos_a * speed
+        dy += sin_a * speed
     if keys[pygame.K_s]:
-        dx -= math.cos(player_angle) * speed
-        dy -= math.sin(player_angle) * speed
+        dx -= cos_a * speed
+        dy -= sin_a * speed
     if keys[pygame.K_a]:
-        player_angle -= 0.05
+        dx += sin_a * speed
+        dy -= cos_a * speed
     if keys[pygame.K_d]:
-        player_angle += 0.05
+        dx -= sin_a * speed
+        dy += cos_a * speed
     if keys[pygame.K_SPACE] and not is_jumping:
         vertical_speed = -JUMP_POWER
         is_jumping = True
@@ -283,7 +340,8 @@ while True:
         is_jumping = False
 
     screen.fill((30, 30, 30))
-    cast_rays()
+    cast_rays()  
+
     if keys[pygame.K_F3]:
         draw_fps()
 
