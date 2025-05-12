@@ -6,7 +6,7 @@ import json
 import importlib.util
 
 # === BASIC SETTINGS ===
-WIDTH, HEIGHT = 800, 600            # Screen resolution
+WIDTH, HEIGHT = 1000, 800            # Screen resolution
 TILE = 50                           # Size of one tile in pixels
 
 # === RAYCASTING PARAMETERS ===
@@ -75,7 +75,7 @@ MAP_HEIGHT = len(MAP) * TILE
 def draw_menu():
     screen.fill((20, 20, 20))
     title = font.render("VoidRay Engine", True, (255, 255, 255))
-    version = font.render("Alpha 0.0.5V | made by Kitsune and Zuha", True, (180, 180, 180))
+    version = font.render("Alpha 0.0.7V | made by Kitsune and Zuha", True, (180, 180, 180))
     info = font.render("[ENTER] Start | [ESC] Exit", True, (150, 150, 150))
 
     screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 3))
