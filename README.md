@@ -3,7 +3,7 @@
 A **modular 2.5D raycasting engine** inspired by *DOOM (1993)* — built entirely in **Python with Pygame**.  
 Supports multiple floors, textured walls, gravity, jumping, dynamic JSON maps, and future mod support.
 
-**Current Version:** `0.1.1V Alpha`  
+**Current Version:** `0.1.3V Alpha`  
 **Created by:** Kitsune & Zuha
 
 ---
