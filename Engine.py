@@ -29,6 +29,11 @@ GROUND_LEVEL = 0
 MAP_FILE = "map.json"
 MAX_DEPTH = 20
 
+MAP_FOLDER = "maps"
+map_list = []
+map_index = 0
+current_map = "None"
+
 # === TEXTURES ===
 TEXTURE_WALL = pygame.image.load("wall.png") if os.path.exists("wall.png") else None
 TEXTURE_FLOOR = pygame.image.load("floor.png") if os.path.exists("floor.png") else None
@@ -60,25 +65,40 @@ MAP = [
 ]
 
 def save_map():
-    with open(MAP_FILE, 'w') as f:
+    filename = os.path.join(MAP_FOLDER, current_map if current_map != "None" else "map.json")
+    with open(filename, 'w') as f:
         json.dump(MAP, f)
 
-def load_map():
-    global MAP, current_map
+def load_map(filename):
+    global MAP, current_map, MAP_WIDTH, MAP_HEIGHT
+    path = os.path.join(MAP_FOLDER, filename)
     try:
-        with open(MAP_FILE, 'r') as f:
+        with open(path, 'r') as f:
             MAP = json.load(f)
-            current_map = MAP_FILE
-    except FileNotFoundError:
-        save_map()
-        current_map = "default"
+            current_map = filename
+            MAP_WIDTH = len(MAP[0]) * TILE
+            MAP_HEIGHT = len(MAP) * TILE
+    except Exception as e:
+        print(f"Failed to load map: {filename} - {e}")
+        current_map = "error"
 
-load_map()
 
 MAP_WIDTH = len(MAP[0]) * TILE
 MAP_HEIGHT = len(MAP) * TILE
 
 loaded_mods = []
+
+def load_map_list():
+    global map_list
+    if not os.path.exists(MAP_FOLDER):
+        os.makedirs(MAP_FOLDER)
+    map_list = [f for f in os.listdir(MAP_FOLDER) if f.endswith(".json")]
+    if not map_list:
+        # fallback map if no maps exist
+        with open(os.path.join(MAP_FOLDER, "default.json"), 'w') as f:
+            json.dump(MAP, f)
+        map_list = ["default.json"]
+
 
 def load_mods():
     global loaded_mods
@@ -97,27 +117,39 @@ def draw_menu():
     screen.fill((20, 20, 20))
 
     title = font.render("VoidRay Engine", True, (255, 255, 255))
-    version = font.render("Alpha 0.0.8V | made by Kitsune and Zuha", True, (180, 180, 180))
-    info = font.render("[ENTER] Start project  |  [ESC] Exit", True, (150, 150, 150))
+    version = font.render("Alpha 0.1.1V | made by Kitsune and Zuha", True, (180, 180, 180))
+    info = font.render("[ENTER] Load map  |  [ESC] Exit  |  [↑/↓] Select Map", True, (150, 150, 150))
 
     screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 5))
     screen.blit(version, (WIDTH // 2 - version.get_width() // 2, HEIGHT // 5 + 40))
-    screen.blit(info, (WIDTH // 2 - info.get_width() // 2, HEIGHT // 2 - 40))
+    screen.blit(info, (WIDTH // 2 - info.get_width() // 2, HEIGHT // 5 + 80))
 
+    # Draw map list
+    map_list_start_y = HEIGHT // 2 - 40
+    for i, name in enumerate(map_list):
+        color = (255, 255, 0) if i == map_index else (150, 150, 150)
+        label = font.render(f"> {name}", True, color)
+        screen.blit(label, (WIDTH // 2 - label.get_width() // 2, map_list_start_y + i * 30))
+
+    # Draw controls below map list
     controls = ["[WASD] Move", "[Space] Jump", "[Shift] Sprint", "[F3] Debug overlay"]
+    controls_start_y = map_list_start_y + len(map_list) * 30 + 30
     for i, ctrl in enumerate(controls):
         text = font.render(ctrl, True, (100, 100, 100))
-        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 + i * 20))
+        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, controls_start_y + i * 25))
 
+    # Loaded mods
     if loaded_mods:
         mods_title = font.render("Loaded Mods:", True, (200, 200, 100))
         screen.blit(mods_title, (40, HEIGHT - 140))
         for i, mod in enumerate(loaded_mods[:3]):
             screen.blit(font.render(f"- {mod}", True, (150, 150, 150)), (60, HEIGHT - 120 + i * 20))
 
+    # Current map name
     map_text = font.render(f"Current Map: {current_map}", True, (150, 150, 150))
     screen.blit(map_text, (WIDTH - map_text.get_width() - 40, HEIGHT - 100))
 
+    # System info (resolution, rays)
     sysinfo = font.render(f"{WIDTH}x{HEIGHT} | {NUM_RAYS} rays", True, (80, 80, 80))
     screen.blit(sysinfo, (WIDTH - sysinfo.get_width() - 40, HEIGHT - 40))
 
@@ -178,16 +210,35 @@ def draw_fps():
 # === MAIN LOOP ===
 menu = True
 load_mods()
+load_map_list()  # <- přidej tuto řádku jako první
+
+# ochrana proti prázdnému seznamu map
+if not map_list:
+    print("❌ No maps found! Creating default map...")
+    save_map()
+    load_map_list()
+
+if map_index >= len(map_list):
+    map_index = 0
+
+load_map(map_list[map_index])
 
 while True:
     if menu:
         draw_menu()
         for event in pygame.event.get():
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                menu = False
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit(); sys.exit()
+                elif event.key == pygame.K_RETURN:
+                    load_map(map_list[map_index])
+                    menu = False
+                elif event.key == pygame.K_DOWN:
+                    map_index = (map_index + 1) % len(map_list)
+                elif event.key == pygame.K_UP:
+                    map_index = (map_index - 1) % len(map_list)
         continue
 
     for event in pygame.event.get():
@@ -197,8 +248,8 @@ while True:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_F5:
                 save_map()
-            elif event.key == pygame.K_F9:
-                load_map()
+            elif event.key == pygame.K_F9 and current_map not in ["None", "error"]:
+                load_map(current_map)
 
     keys = pygame.key.get_pressed()
     dx, dy = 0, 0
