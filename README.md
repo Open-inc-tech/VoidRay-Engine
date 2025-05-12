@@ -10,15 +10,45 @@ Supports multiple floors, textured walls, gravity, jumping, dynamic JSON maps, a
 
 ## 🧩 Features
 
-- ✅ **Classic 2.5D raycasting engine**
-- ✅ **Modular and extensible codebase**
-- ✅ **Multiple floor height support**
-- ✅ **Gravity and jumping physics**
-- ✅ **Raycasting with depth correction**
-- ✅ **Dynamic map loading (JSON format)**
-- ✅ **Texture support for walls**
-- ✅ **Mod loading system** *(planned)*
-- ✅ **Engine ready for expansion** (enemies, items, editors)
+-✅ **Classic 2.5D raycasting renderer (inspired by DOOM/Wolfenstein 3D)**
+
+-✅ **Accurate depth-corrected raycasting**
+
+-✅ **Multiple floor & ceiling heights with z-axis support**
+
+-✅ **Jumping, gravity, and smooth vertical movement**
+
+-✅ **Strafing and mouse look support (WASD + full mouse camera control)**
+
+-✅ **Dynamic lighting and shading based on distance and direction**
+
+-✅ **Texture support for walls and special tiles (walls, windows, transparent blocks)**
+
+-✅ **Transparent walls and window rendering (render-through raycasting)**
+
+-✅ **Interactive elements support (planned: doors, switches)**
+
+-✅ **Modular & extensible codebase for easy hacking and expansion**
+
+-✅ **Dynamic map loading using external .json files**
+
+-✅ **Built-in map editor (optional/expandable)**
+
+-✅ **Mod loading system (planned) – load custom content, textures, logic**
+
+-✅ **Map saving and hot-reloading (F5 to save, F9 to reload)**
+
+-✅ **Simple menu system with map selection**
+
+-✅ **Performance-friendly rendering (scalable resolution/raycast count)**
+
+-✅ **Debug overlay (FPS, player info) with toggle (F3)**
+
+-✅ **Safe error handling and fallback mechanisms (e.g. missing maps)**
+
+-✅ **Future-ready architecture (supports AI, enemies, scripting)**
+
+-✅ **ASCII/console rendering version (optional, alternate rendering mode)**
 
 ---
 
