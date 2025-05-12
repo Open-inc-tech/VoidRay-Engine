@@ -128,9 +128,17 @@ def cast_rays():
                 break
 
 def draw_fps():
+    # FPS
     fps = int(clock.get_fps())
-    text = font.render(f"FPS: {fps}", True, (255, 255, 0))
-    screen.blit(text, (10, 10))
+    overlay = [
+        f"FPS: {fps}",
+        f"Position: ({int(player_x)}, {int(player_y)})",
+        f"Angle: {int(math.degrees(player_angle)) % 360}°",
+        f"Height: {int(player_height) if 'player_height' in globals() else 'N/A'}",
+        f"Floor level: {MAP[int(player_y // TILE)][int(player_x // TILE)][1]}",
+        f"Rays: {NUM_RAYS}",
+        f"Screen: {WIDTH}x{HEIGHT}",
+    ]
 
 def load_mods():
     if not os.path.exists("mods"):
