@@ -8,11 +8,9 @@ import json
 import importlib.util
 import logging
 
-# === BASIC SETTINGS ===
 WIDTH, HEIGHT = 1280, 720
 TILE = 50
 
-# === RAYCASTING PARAMETERS ===
 FOV = math.pi / 3
 HALF_FOV = FOV / 2
 NUM_RAYS = 160
@@ -21,12 +19,10 @@ DIST = NUM_RAYS / (2 * math.tan(HALF_FOV))
 PROJ_COEFF = 3 * DIST * TILE
 SCALE = WIDTH // NUM_RAYS
 
-# === PLAYER PHYSICS ===
 GRAVITY = 1.2
 JUMP_POWER = 18
 GROUND_LEVEL = 0
 
-# === MAP SETTINGS ===
 MAP_FILE = "map.json"
 MAX_DEPTH = 20
 
@@ -35,30 +31,25 @@ map_list = []
 map_index = 0
 current_map = "None"
 
-# === TEXTURES ===
 TEXTURE_WALL = pygame.image.load("wall.png") if os.path.exists("wall.png") else None
 TEXTURE_FLOOR = pygame.image.load("floor.png") if os.path.exists("floor.png") else None
 
-# --- Inicializace Pygame ---
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)  # Lepší škálování
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
 pygame.display.set_caption("VoidRay Engine")
 clock = pygame.time.Clock()
 
-# Font pro debug / UI
 font = pygame.font.SysFont("consolas", 20)
 small_font = pygame.font.SysFont("consolas", 14)
 
-# --- Inicializace hráče ---
 player_x = 100
 player_y = 100
 player_angle = 0
 player_z = GROUND_LEVEL
-player_height = 32  # Výška hráče (pro budoucí kolize/skoky)
-player_speed = 3    # Rychlost pohybu
-player_turn_speed = 0.05  # Rychlost otáčení
+player_height = 32  
+player_speed = 3    
+player_turn_speed = 0.05  
 
-# --- Pohybové proměnné ---
 vertical_speed = 0
 gravity = 1.2
 jump_force = -12
@@ -66,20 +57,16 @@ is_jumping = False
 is_falling = False
 on_ground = True
 
-# --- Stav ---
 show_fps = True
 debug_mode = True
 
-# --- Barvy ---
 COLOR_SKY = (40, 40, 80)
 COLOR_GROUND = (30, 30, 30)
 COLOR_PLAYER = (255, 255, 0)
 
-# --- Inicializace dalších věcí ---
 frame_count = 0
 game_running = True
 
-# Default map
 MAP = [
     [[1,0],[1,0],[1,0]],
     [[1,0],[0,0],[1,0]],
@@ -93,7 +80,7 @@ def save_map():
 
 def load_map(filename):
     global MAP, current_map, MAP_WIDTH, MAP_HEIGHT
-    global player_x, player_y  # pro nastavení spawnu hráče
+    global player_x, player_y  
     path = os.path.join(MAP_FOLDER, filename)
     try:
         with open(path, 'r') as f:
@@ -102,14 +89,13 @@ def load_map(filename):
             MAP_WIDTH = len(MAP[0]) * TILE
             MAP_HEIGHT = len(MAP) * TILE
 
-            # Najdi "P" jako tile_type
             for y, row in enumerate(MAP):
                 for x, cell in enumerate(row):
                     tile_type, _ = cell
                     if tile_type == "P":
                         player_x = x * TILE + TILE // 2
                         player_y = y * TILE + TILE // 2
-                        MAP[y][x][0] = 0  # Přepiš "P" na 0, aby to byl volný prostor
+                        MAP[y][x][0] = 0  
                         print(f"Player spawn set to: ({x}, {y})")
                         break
 
@@ -128,13 +114,10 @@ def load_map_list():
         os.makedirs(MAP_FOLDER)
     map_list = [f for f in os.listdir(MAP_FOLDER) if f.endswith(".json")]
     if not map_list:
-        # fallback map if no maps exist
         with open(os.path.join(MAP_FOLDER, "default.json"), 'w') as f:
             json.dump(MAP, f)
         map_list = ["default.json"]
 
-
-# Vytvoření loggeru pro chybové zprávy
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -142,7 +125,6 @@ def load_mods():
     global loaded_mods
     loaded_mods = []
 
-    # Zkontrolujeme, jestli složka "mods" existuje, jinak ji vytvoříme
     mods_folder = "mods"
     if not os.path.exists(mods_folder):
         try:
@@ -152,18 +134,15 @@ def load_mods():
             logger.error(f"Chyba při vytváření složky '{mods_folder}': {e}")
             return
 
-    # Načítání modů ze složky "mods"
     for filename in os.listdir(mods_folder):
         if filename.endswith(".py"):
             mod_path = os.path.join(mods_folder, filename)
             
-            # Kontrola, zda byl modul již načten
             if filename in loaded_mods:
                 logger.info(f"Modul '{filename}' již byl načten.")
                 continue
             
             try:
-                # Import modulu
                 spec = importlib.util.spec_from_file_location(filename, mod_path)
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)
@@ -172,54 +151,44 @@ def load_mods():
             except Exception as e:
                 logger.error(f"Chyba při načítání modulu '{filename}': {e}")
 
-    # Výpis načtených modulů pro ladění
     logger.info(f"Načtené moduly: {loaded_mods}")
 
 def draw_menu():
-    # Fill the screen with a dark background
     screen.fill((20, 20, 20))
 
-    # Title with shadow effect
     title = font.render("VoidRay Engine", True, (255, 255, 255))
-    title_shadow = font.render("VoidRay Engine", True, (50, 50, 50))  # Shadow for title
+    title_shadow = font.render("VoidRay Engine", True, (50, 50, 50))
     screen.blit(title_shadow, (WIDTH // 2 - title.get_width() // 2 + 2, HEIGHT // 5 + 2))
     screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 5))
 
-    # Version with a subtler shadow
-    version = font.render("Alpha 0.1.3V | made by Kitsune and Zuha", True, (180, 180, 180))
+    version = font.render("Alpha 0.1.6V | made by Kitsune and Zuha", True, (180, 180, 180))
     version_shadow = font.render("Alpha 0.1.3V | made by Kitsune and Zuha", True, (50, 50, 50))
     screen.blit(version_shadow, (WIDTH // 2 - version.get_width() // 2 + 2, HEIGHT // 5 + 40 + 2))
     screen.blit(version, (WIDTH // 2 - version.get_width() // 2, HEIGHT // 5 + 40))
 
-    # Info text with subtle glow effect
     info = font.render("[ENTER] Load map  |  [ESC] Exit  |  [↑/↓] Select Map", True, (150, 150, 150))
     info_glow = font.render("[ENTER] Load map  |  [ESC] Exit  |  [↑/↓] Select Map", True, (200, 200, 200))
     screen.blit(info_glow, (WIDTH // 2 - info.get_width() // 2 + 2, HEIGHT // 5 + 80 + 2))
     screen.blit(info, (WIDTH // 2 - info.get_width() // 2, HEIGHT // 5 + 80))
 
-    # Draw map list with smooth transition highlight
     map_list_start_y = HEIGHT // 2 - 40
     for i, name in enumerate(map_list):
-        # Highlight the current map with a golden color
         if i == map_index:
             label = font.render(f"> {name}", True, (255, 255, 0))
-            # Create subtle shine effect for selected map
             label_shine = font.render(f"> {name}", True, (255, 255, 80))
             screen.blit(label_shine, (WIDTH // 2 - label.get_width() // 2 + 1, map_list_start_y + i * 30 + 1))
         else:
             label = font.render(f"> {name}", True, (150, 150, 150))
         screen.blit(label, (WIDTH // 2 - label.get_width() // 2, map_list_start_y + i * 30))
 
-    # Draw controls with sleek, soft gradient underglow
     controls = ["[WASD] Move", "[Space] Jump", "[Shift] Sprint", "[F3] Debug overlay"]
     controls_start_y = map_list_start_y + len(map_list) * 30 + 30
     for i, ctrl in enumerate(controls):
         text = font.render(ctrl, True, (100, 100, 100))
-        text_glow = font.render(ctrl, True, (180, 180, 180))  # Soft glow for controls
+        text_glow = font.render(ctrl, True, (180, 180, 180))  
         screen.blit(text_glow, (WIDTH // 2 - text.get_width() // 2 + 1, controls_start_y + i * 25 + 1))
         screen.blit(text, (WIDTH // 2 - text.get_width() // 2, controls_start_y + i * 25))
 
-    # Loaded mods section with a subtle background glow
     if loaded_mods:
         mods_title = font.render("Loaded Mods:", True, (200, 200, 100))
         mods_title_glow = font.render("Loaded Mods:", True, (255, 255, 150))
@@ -230,13 +199,11 @@ def draw_menu():
             mod_text = font.render(f"- {mod}", True, (150, 150, 150))
             screen.blit(mod_text, (60, HEIGHT - 120 + i * 20))
 
-    # Current map name with vibrant highlight
     map_text = font.render(f"Current Map: {current_map}", True, (150, 150, 150))
     map_text_highlight = font.render(f"Current Map: {current_map}", True, (255, 255, 255))
     screen.blit(map_text_highlight, (WIDTH - map_text.get_width() - 40 + 1, HEIGHT - 100 + 1))
     screen.blit(map_text, (WIDTH - map_text.get_width() - 40, HEIGHT - 100))
 
-    # System info (resolution, rays) with additional clarity
     sysinfo = font.render(f"{WIDTH}x{HEIGHT} | {NUM_RAYS} rays", True, (80, 80, 80))
     sysinfo_shadow = font.render(f"{WIDTH}x{HEIGHT} | {NUM_RAYS} rays", True, (50, 50, 50))
     screen.blit(sysinfo_shadow, (WIDTH - sysinfo.get_width() - 40 + 1, HEIGHT - 40 + 1))
@@ -250,10 +217,9 @@ def check_collision(x, y):
 
     if 0 <= tile_y < len(MAP) and 0 <= tile_x < len(MAP[0]):
         tile_type, _ = MAP[tile_y][tile_x]
-        solid_tiles = {1, 3}  # Typy, které se počítají jako pevné (např. 1=zeď, 3=pevná rampa)
+        solid_tiles = {1, 3}  
         return tile_type in solid_tiles
 
-    # Mimo mapu = kolize
     return True
     
 def cast_rays():
@@ -285,14 +251,12 @@ def cast_rays():
                 y_offset = tile_height * 20
                 screen_y = HEIGHT // 2 - wall_height // 2 - y_offset
 
-                # ---- Osvětlení ----
                 fog = math.exp(-fog_density * corrected_depth)
-                light_angle = max(0.1, cos_fov_diff)  # Simuluje úhel dopadu světla (Fresnel)
+                light_angle = max(0.1, cos_fov_diff)  
                 brightness = fog * (ambient_light + sun_intensity * 255 * light_angle)
                 brightness = max(ambient_light, min(255, brightness))
 
-                # ---- Typy objektů ----
-                if tile_type == 1:  # Zeď
+                if tile_type == 1:
                     r = brightness
                     g = brightness * 0.92
                     b = brightness * 0.85
@@ -300,7 +264,7 @@ def cast_rays():
                     pygame.draw.rect(screen, color, pygame.Rect(ray * SCALE, screen_y, SCALE, wall_height))
                     break
             else:
-                break  # mimo mapu
+                break 
 
 def draw_fps():
     fps = int(clock.get_fps())
@@ -326,10 +290,9 @@ def draw_fps():
         surface = font.render(line, True, (120, 255, 120))
         screen.blit(surface, (10, 10 + i * 20))
 
-# === MAIN LOOP ===
 menu = True
 load_mods()
-load_map_list()  # <- přidej tuto řádku jako první
+load_map_list()  
 
 if not map_list:
     print("❌ No maps found! Creating default map...")
